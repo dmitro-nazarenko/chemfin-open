@@ -6,7 +6,7 @@ def save_sparse_csr(filename,array):
     np.savez(filename, data = array.data, indices = array.indices,
              indptr = array.indptr, shape = array.shape )
 
-def t2m_full(data, type = '01', saveindfnm = None):
+def t2m_full(data, type = 'mean_std', saveindfnm = None):
     sa = data.shape
     data = np.reshape(data, (sa[0], -1), order = 'F')
     a = data.copy()
@@ -37,13 +37,20 @@ def t2m_full(data, type = '01', saveindfnm = None):
         return a, mean, std, p2n
 
 
-fnm = 'data_art.npz'
-#fnm = 'data_raw.npz'#'data_blcleaned.npz'#
-f = np.load(fnm)
-data = f['data']
-label = f['label']
-a, mean, std, p2n = t2m_full(data)#, 'ind')
-np.savez('art_woms_01', data = a, mean = mean, std = std, p2n = p2n, label = label)
+if __name__ == '__main__':
+    #fnm = 'data_art.npz'
+    #fnm = 'data_raw.npz'#'data_blcleaned.npz'#
+    #fnm = 'data_art_train.npz'
+    fnms = ['data_art+orig_valid.npz',
+            'data_art+orig_train.npz',
+            'data_orig_valid.npz',
+            'data_orig_train.npz']
+    for fnm in fnms:
+        f = np.load(fnm)
+        data = f['data']
+        label = f['label']
+        a, mean, std, p2n = t2m_full(data)#, 'ind')
+        np.savez_compressed(fnm.replace('data', 'mat'), data = a, mean = mean, std = std, p2n = p2n, label = label, type = 'mean_std')
 
 
 

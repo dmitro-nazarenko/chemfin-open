@@ -10,7 +10,7 @@ from sklearn.metrics import log_loss
 def check_vb(datanm, samples_per_class, Cs, num_classes, gamma, num_iter = 100, kernel = 'linear', strat = 'ovr'):
     data, labels = load_full(datanm, samples_per_class)
     slo = StratifiedShuffleSplit(labels, n_iter=num_iter, test_size=0.5, train_size=0.5, random_state=None)
-    ans = np.zeros((len(Cs), samples_per_class/2, 4))
+    ans = np.zeros((len(Cs), len(gamma), samples_per_class/2, 4))
     for train_index, test_index in slo:
         train_data = [data[train_index, :], labels[train_index]]
         valid_data = [data[test_index , :], labels[test_index ]]
@@ -26,22 +26,23 @@ def check_vb(datanm, samples_per_class, Cs, num_classes, gamma, num_iter = 100, 
             cvalid_data = [ valid_data[0][ind_valid], valid_data[1][ind_valid] ]
 
             for i, C in enumerate(Cs):
-                clf = svm.SVC(C=C, kernel=kernel, degree=3, gamma=gamma, coef0=0.0, shrinking=True,
-                              probability=False, tol=0.001,  cache_size=10000, class_weight=None,
-                              verbose=False, max_iter=-1, decision_function_shape=strat, random_state=None)
-                clf.fit(ctrain_data[0], ctrain_data[1])
+                for j, g in enumerate(gamma):
+                    clf = svm.SVC(C=C, kernel=kernel, degree=3, gamma=g, coef0=0.0, shrinking=True,
+                                  probability=False, tol=0.001,  cache_size=10000, class_weight=None,
+                                  verbose=False, max_iter=-1, decision_function_shape=strat, random_state=None)
+                    clf.fit(ctrain_data[0], ctrain_data[1])
 
-                #out_train = clf.predict_proba(ctrain_data[0])
-                #out_valid = clf.predict_proba(cvalid_data[0])
+                    #out_train = clf.predict_proba(ctrain_data[0])
+                    #out_valid = clf.predict_proba(cvalid_data[0])
 
-                #ans[i, l, 0] += log_loss(ctrain_data[1], out_train)
-                #ans[i, l, 1] += log_loss(cvalid_data[1], out_valid)
-                
-                out_train = clf.decision_function(train_data[0])
-                out_valid = clf.decision_function(valid_data[0])
+                    #ans[i, l, 0] += log_loss(ctrain_data[1], out_train)
+                    #ans[i, l, 1] += log_loss(cvalid_data[1], out_valid)
+                    
+                    out_train = clf.decision_function(train_data[0])
+                    out_valid = clf.decision_function(valid_data[0])
 
-                ans[i, l, 2] += hinge_loss(train_data[1], out_train, range(num_classes))
-                ans[i, l, 3] += hinge_loss(valid_data[1], out_valid, range(num_classes))
+                    ans[i, j, l, 2] += hinge_loss(train_data[1], out_train, range(num_classes))
+                    ans[i, j, l, 3] += hinge_loss(valid_data[1], out_valid, range(num_classes))
 
     ans /= num_iter
 
@@ -145,8 +146,8 @@ def main_func(datanm, samples_per_class, C, num_classes, gamma, num_iter = 100, 
 
 if __name__ == '__main__':
     datanm = '../data/a.npz'
-    kernel = 'rbf'
-    #kernel = 'linear'
+    #kernel = 'rbf'
+    kernel = 'linear'
     strat = 'ovr'
     #strat = 'ovo'
 
@@ -162,7 +163,7 @@ if __name__ == '__main__':
         bgamma = 0.0001
         Cb = 100.
     if (kernel == 'linear') and (strat == 'ovr'):
-        Cs = [1., 0.01, 0.001, 0.0001, 0.00001]
+        Cs = [10., 1., 0.01, 0.001, 0.0001, 0.00001]
         Cb = 0.01
         bgamma = 'auto'
         gamma = [bgamma]
@@ -170,9 +171,10 @@ if __name__ == '__main__':
     #    Cs = [1., 0.001, 0.0000075, 0.00000075, 0.000000075]
     #Cs = [1./0.35]
     #a = check_lambda(datanm, gamma = gamma, samples_per_class = 20, Cs = Cs, num_classes = 36, num_iter = 100, kernel = kernel, strat = strat)
-    #a = check_vb(datanm, gamma = bgamma, samples_per_class = 20, Cs = [Cb], num_classes = 36, num_iter = 100)
+    a = check_vb(datanm, gamma = gamma, samples_per_class = 20, Cs = [Cb], num_classes = 36, num_iter = 100, kernel = kernel)
+
     #Cs = (1./np.arange(0.01, 2.01, 0.1)).tolist()
-    l = main_func(datanm, samples_per_class = 20, C = Cb, num_classes = 36, gamma = bgamma, num_iter = 100, kernel = kernel, strat = strat)
+    #l = main_func(datanm, samples_per_class = 20, C = Cb, num_classes = 36, gamma = bgamma, num_iter = 100, kernel = kernel, strat = strat)
 
 
 

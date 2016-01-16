@@ -14,10 +14,10 @@ def brier(ytrue, yprob, num_classes):
     rv /= num_classes
     return rv
 
-def check_vb(datanm, samples_per_class, depv, num_classes, criterion, num_iter = 100):
+def check_vb(datanm, samples_per_class, depv, nest, num_classes, criterion, num_iter = 100):
     data, labels = load_full(datanm, samples_per_class)
     slo = StratifiedShuffleSplit(labels, n_iter=num_iter, test_size=0.5, train_size=0.5, random_state=None)
-    ans = np.zeros((len(depv), samples_per_class/2, 4))
+    ans = np.zeros((samples_per_class/2, 4))
     for train_index, test_index in slo:
         train_data = [data[train_index, :], labels[train_index]]
         valid_data = [data[test_index , :], labels[test_index ]]
@@ -32,26 +32,26 @@ def check_vb(datanm, samples_per_class, depv, num_classes, criterion, num_iter =
             ctrain_data = [ train_data[0][ind_train], train_data[1][ind_train] ]
             cvalid_data = [ valid_data[0][ind_valid], valid_data[1][ind_valid] ]
 
-            for i, d in enumerate(depv):
-                clf = DecisionTreeClassifier(criterion=criterion, splitter='best',
-                                             max_depth=d, min_samples_split=2,
-                                             min_samples_leaf=1, min_weight_fraction_leaf=0.0,
-                                             max_features=None, random_state=None,
-                                             max_leaf_nodes=None, class_weight=None, presort=False)
-                clf.fit(ctrain_data[0], ctrain_data[1])
+            clf = RandomForestClassifier(n_estimators=nest, criterion=criterion, max_depth=depv,
+                                    min_samples_split=2, min_samples_leaf=1,
+                                    min_weight_fraction_leaf=0.0, max_features='auto',
+                                    max_leaf_nodes=None, bootstrap=True, oob_score=False,
+                                    n_jobs=8, random_state=None, verbose=0, warm_start=False,
+                                    class_weight=None)
+            clf.fit(ctrain_data[0], ctrain_data[1])
 
-                out_train = clf.predict_proba(ctrain_data[0])
-                out_valid = clf.predict_proba(cvalid_data[0])
+            out_train = clf.predict_proba(ctrain_data[0])
+            out_valid = clf.predict_proba(cvalid_data[0])
 
-                ans[i, l, 0] += log_loss(ctrain_data[1], out_train)
-                ans[i, l, 1] += log_loss(cvalid_data[1], out_valid)
+            ans[l, 0] += log_loss(ctrain_data[1], out_train)
+            ans[l, 1] += log_loss(cvalid_data[1], out_valid)
 
-                ans[i, l, 2] += brier(ctrain_data[1], out_train, num_classes)
-                ans[i, l, 3] += brier(cvalid_data[1], out_valid, num_classes)
+            ans[l, 2] += brier(ctrain_data[1], out_train, num_classes)
+            ans[l, 3] += brier(cvalid_data[1], out_valid, num_classes)
 
     ans /= num_iter
 
-    np.savez("rand_forest_bv_" + criterion, ans= ans, mdep = mdep, num_iter = num_iter, num_classes = num_classes, samples_per_class = samples_per_class)
+    np.savez("rand_forest_bv_" + criterion, ans= ans, depv = depv, nest=nest, num_iter = num_iter, num_classes = num_classes, samples_per_class = samples_per_class)
     return ans
 
 def check_lambda(datanm, samples_per_class,depv, num_classes, criterion, num_iter = 100):
@@ -159,6 +159,10 @@ if __name__ == '__main__':
     if crit == 'gini':
         mdep = range(1, 101)#[1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40]#, 35, 40, 45, 50]
         nest = range(1, 101)#[1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+
+
+        bdep = 18
+        bnest = 45
         #dep = 35
     if crit == 'entropy':
             # bad
@@ -167,8 +171,8 @@ if __name__ == '__main__':
 
     #Cs = (1./np.arange(0.01, 2.01, 0.1)).tolist()
     #a = check_lambda(datanm, samples_per_class = 20, depv = mdep, num_classes = 36, num_iter = 100, criterion = crit)
-    #a = check_vb(datanm, samples_per_class = 20, depv = mdep, num_classes = 36, num_iter = 100, criterion = crit)
-    l = main_func(datanm, samples_per_class = 20, depv = mdep, nest = nest, num_classes = 36, criterion = crit, num_iter = 100)
+    a = check_vb(datanm, samples_per_class = 20, depv = bdep, nest = bnest, num_classes = 36, num_iter = 100, criterion = crit)
+    #l = main_func(datanm, samples_per_class = 20, depv = mdep, nest = nest, num_classes = 36, criterion = crit, num_iter = 100)
 
 
 

@@ -38,7 +38,7 @@ def check_vb(datanm, samples_per_class, Cs, num_classes, num_iter = 100):
     np.savez("logreg_bv", ans= ans, Cs = Cs, num_iter = num_iter, num_classes = num_classes, samples_per_class = samples_per_class)
     return ans
 
-def check_lambda(datanm, samples_per_class, Cs, num_classes, num_iter = 100):
+def check_lambda(datanm, samples_per_class, Cs, num_classes, num_iter=100, save_filename=None):
     data, labels = load_full(datanm, samples_per_class)
     slo = StratifiedShuffleSplit(labels, n_iter=num_iter, test_size=0.3, train_size=0.7, random_state=None)
     ans = np.zeros((len(Cs), 2))
@@ -59,7 +59,8 @@ def check_lambda(datanm, samples_per_class, Cs, num_classes, num_iter = 100):
 
     ans[:, :] /= num_iter
 
-    np.savez("logreg_lambda", ans= ans, Cs = Cs, num_iter = num_iter, num_classes = num_classes, samples_per_class = samples_per_class)
+    if save_filename is not None:
+        np.savez(save_filename, ans= ans, Cs = Cs, num_iter = num_iter, num_classes = num_classes, samples_per_class = samples_per_class)
     return ans
 
 def main_func(datanm, samples_per_class, C, num_classes, num_iter = 100):
